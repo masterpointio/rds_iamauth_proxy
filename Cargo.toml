@@ -18,7 +18,21 @@ config = "0.13.4"
 eyre = "0.6.9"
 futures = "0.3.29"
 memchr = "2.6.4"
-native-tls = "0.2.11"
+# muslrust dropped its prebuilt static OpenSSL in 2025 (clux/muslrust#153), so
+# native-tls -> openssl-sys can no longer find a system OpenSSL in the builder
+# image. `vendored` makes openssl-sys compile OpenSSL from source (via the
+# openssl-src crate) and link it statically.
+#
+# NOTE: vendoring means WE own OpenSSL patching -- rebuilding the image no
+# longer picks up upstream fixes, and `cargo audit` does NOT track the bundled
+# C library version. The exact OpenSSL is pinned in Cargo.lock via openssl-src's
+# `+<version>` metadata; it is currently 300.6.1+3.6.3.
+#
+# 3.6.3 (not the 3.5 LTS line) is deliberate: openssl-src lags 3.5 LTS at 3.5.5,
+# which predates the fixes for CVE-2026-45447 (High, heap UAF in PKCS7_verify)
+# and CVE-2026-34182. 3.6.3 carries both. Re-evaluate if openssl-src ships
+# 3.5.7+.
+native-tls = { version = "0.2.11", features = ["vendored"] }
 postgres-native-tls = "0.5.0"
 postgres-protocol = "0.6.6"
 serde = "1.0.193"
